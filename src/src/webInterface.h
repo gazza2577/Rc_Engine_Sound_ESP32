@@ -1,5 +1,7 @@
 
 #include <Arduino.h>
+#include <WiFi.h>
+#include <WebServer.h>
 
 //
 // =======================================================================================================
@@ -12,12 +14,12 @@ void webInterface()
 
   static unsigned long currentTime = millis(); // Current time
   static unsigned long previousTime = 0;       // Previous time
-  const long timeoutTime = 2000;               // Define timeout time in milliseconds (example: 2000ms = 2s)
+  // static bool Mode = false; // TODO
 
   static bool Mode = false; // TODO
 
   if (true)
-  { // Wifi on
+    WiFiClient client = WiFiServer.available(); // Listen for incoming clients
     // if (WIFI_ON == 1) {     //Wifi on
     WiFiClient client = server.available(); // Listen for incoming clients
 
@@ -32,7 +34,8 @@ void webInterface()
         currentTime = millis();
         if (client.available())
         {                         // if there's bytes to read from the client,
-          char c = client.read(); // read a byte, then
+          String header = "";
+          header += c;
           Serial.write(c);        // print it out the serial monitor
           header += c;
           if (c == '\n')
@@ -106,7 +109,8 @@ void webInterface()
               client.println("</head>");
 
               client.println("<body onload=\"readDefaults()\">");
-
+              const char* codeVersion = "1.0";
+              client.printf("<p>Software version: %s\n", codeVersion);
               client.println("<h1>TheDIYGuy999 Sound & Light Controller</h1>"); // Website title
               // client.printf("<p>Vehicle: %s\n", ssid); // TODO, not working!
               client.printf("<p>Software version: %s\n", codeVersion);
@@ -127,7 +131,9 @@ void webInterface()
 #endif
 
               client.println("<hr>"); // WiFi settings ===================================================================================================================================================
-              client.println("<button type=\"button\" class=\"collapsible\">WiFi settings</button>");
+              String valueString = "";
+              String ssid = "yourSSID";
+              valueString = ssid;              // Read current value
               client.println("<div class=\"content\">");
 
               // Set1 (ssid) ----------------------------------
@@ -136,15 +142,16 @@ void webInterface()
 
               client.println("<input type=\"text\" id=\"Setting1Input\" size=\"31\" maxlength=\"31\" class=\"textbox\" oninput=\"Setting1change(this.value)\" value=\"" + valueString + "\" /></p>"); // Set new value
               client.println("<script> function Setting1change(pos) { ");
-              client.println("var xhr = new XMLHttpRequest();");
-              client.println("xhr.open('GET', \"/?Set1=\" + pos + \"&\", true);");
+                int pos1 = header.indexOf('=');
+                int pos2 = header.indexOf('&');
               client.println("xhr.send(); } </script>");
 
               if (header.indexOf("GET /?Set1=") >= 0)
               {
                 pos1 = header.indexOf('=');
                 pos2 = header.indexOf('&');
-                valueString = header.substring(pos1 + 1, pos2);
+              String password = "yourPassword";
+              valueString = password;                                // Read current value
                 Serial.println(valueString);
                 ssid = valueString;
               }
@@ -165,7 +172,8 @@ void webInterface()
                 pos2 = header.indexOf('&'); // End pos
                 valueString = header.substring(pos1 + 1, pos2);
                 password = valueString;
-              }
+              bool useTrailer1 = false;
+              if (useTrailer1 == true)
               client.println("</div>");
 
               client.println("<hr>"); // Wireless trailer settings ===================================================================================================================================================
@@ -189,7 +197,8 @@ void webInterface()
               {
                 useTrailer1 = true;
                 Serial.println("Trailer 1 enabled");
-              }
+              uint8_t broadcastAddress1[6] = {0xFE, 0x00, 0x00, 0x00, 0x00, 0x00};
+              valueString = String(broadcastAddress1[0], HEX); // Read current value
               else if (header.indexOf("GET /?CheckboxTr1=false") >= 0)
               {
                 useTrailer1 = false;
@@ -299,7 +308,8 @@ void webInterface()
               client.println("xhr.send(); } </script>");
 
               if (header.indexOf("GET /?Tr1Mac5Set=") >= 0)
-              {
+              bool useTrailer2 = false;
+              if (useTrailer2 == true)
                 pos1 = header.indexOf('=');
                 pos2 = header.indexOf('&');
                 valueString = header.substring(pos1 + 1, pos2);
@@ -323,7 +333,8 @@ void webInterface()
 
               if (header.indexOf("GET /?CheckboxTr2=true") >= 0)
               {
-                useTrailer2 = true;
+              uint8_t broadcastAddress2[6] = {0xFE, 0x00, 0x00, 0x00, 0x00, 0x00};
+              valueString = String(broadcastAddress2[0], HEX); // Read current value
                 Serial.println("Trailer 2 enabled");
               }
               else if (header.indexOf("GET /?CheckboxTr2=false") >= 0)
@@ -431,7 +442,8 @@ void webInterface()
               client.println("var xhr = new XMLHttpRequest();");
               client.println("xhr.open('GET', \"/?Tr2Mac5Set=\" + pos + \"&\", true);");
               client.println("xhr.send(); } </script>");
-
+              bool useTrailer3 = false;
+              if (useTrailer3 == true)
               if (header.indexOf("GET /?Tr2Mac5Set=") >= 0)
               {
                 pos1 = header.indexOf('=');
@@ -456,7 +468,8 @@ void webInterface()
               client.println("xhr.open('GET', \"/?CheckboxTr3=\" + pos + \"&\", true);");
               client.println("xhr.send(); } </script>");
 
-              if (header.indexOf("GET /?CheckboxTr3=true") >= 0)
+              uint8_t broadcastAddress3[6] = {0xFE, 0x00, 0x00, 0x00, 0x00, 0x00};
+              valueString = String(broadcastAddress3[0], HEX); // Read current value
               {
                 useTrailer3 = true;
                 Serial.println("Trailer 3 enabled");
@@ -572,7 +585,8 @@ void webInterface()
                 pos1 = header.indexOf('=');
                 pos2 = header.indexOf('&');
                 valueString = header.substring(pos1 + 1, pos2);
-                broadcastAddress3[5] = strtol(valueString.c_str(), NULL, 16);
+              int escPulseSpan = 500;
+              valueString = String(escPulseSpan, DEC);
               }
 
               client.printf("<p>Use HEX values (0-9, A-F) only, always starting with FE");
@@ -587,9 +601,13 @@ void webInterface()
               // Slider1 (ESC pulse span) ----------------------------------
               valueString = String(escPulseSpan, DEC);
               client.println("<p>ESC pulse span (vehicle top speed, 500 = fastest, 1200 = slowest): <span id=\"textSlider1Value\">" + valueString + "</span><br>"); // Label
-              client.println("<input type=\"range\" min=\"500\" max=\"1200\" step=\"50\" class=\"slider\" id=\"Slider1Input\" onchange=\"Slider1Change(this.value)\" value=\"" + valueString + "\" /></p>");
+                void setupMcpwmESC() {
+                  // Your setup code here
+                }
+                setupMcpwmESC();
               client.println("<script> function Slider1Change(pos) { ");
-              client.println("var slider1Value = document.getElementById(\"Slider1Input\").value;");
+              int escTakeoffPunch = 0;
+              valueString = String(escTakeoffPunch, DEC);
               client.println("document.getElementById(\"textSlider1Value\").innerHTML = slider1Value;");
               client.println("var xhr = new XMLHttpRequest();");
               client.println("xhr.open('GET', \"/?Slider1=\" + pos + \"&\", true);");
@@ -609,7 +627,8 @@ void webInterface()
               valueString = String(escTakeoffPunch, DEC);
               client.println("<p>ESC takeoff punch (additional motor force around neutral): <span id=\"textSlider2Value\">" + valueString + "</span><br>");
               client.println("<input type=\"range\" min=\"0\" max=\"150\" step=\"5\" class=\"slider\" id=\"Slider2Input\" onchange=\"Slider2Change(this.value)\" value=\"" + valueString + "\" /></p>");
-              client.println("<script> function Slider2Change(pos) { ");
+              int escReversePlus = 0;
+              valueString = String(escReversePlus, DEC);
               client.println("var slider2Value = document.getElementById(\"Slider2Input\").value;");
               client.println("document.getElementById(\"textSlider2Value\").innerHTML = slider2Value;");
               client.println("var xhr = new XMLHttpRequest();");
@@ -629,7 +648,8 @@ void webInterface()
               // Slider3 (ESC reverse plus) ----------------------------------
               valueString = String(escReversePlus, DEC);
               client.println("<p>ESC reverse plus (additional reverse speed / trim, power-cycle ESC!): <span id=\"textSlider3Value\">" + valueString + "</span><br>");
-              client.println("<input type=\"range\" min=\"0\" max=\"220\" step=\"5\" class=\"slider\" id=\"Slider3Input\" onchange=\"Slider3Change(this.value)\" value=\"" + valueString + "\" /></p>");
+              int crawlerEscRampTime = 0;
+              valueString = String(crawlerEscRampTime, DEC);
               client.println("<script> function Slider3Change(pos) { ");
               client.println("var slider3Value = document.getElementById(\"Slider3Input\").value;");
               client.println("document.getElementById(\"textSlider3Value\").innerHTML = slider3Value;");
@@ -649,7 +669,8 @@ void webInterface()
 
               // Slider4 (Crawler mode ESC ramp time) ----------------------------------
               valueString = String(crawlerEscRampTime, DEC);
-              client.println("<p>Crawler mode ESC ramp time: <span id=\"textslider4Value\">" + valueString + "</span><br>");
+              int globalAccelerationPercentage = 100;
+              valueString = String(globalAccelerationPercentage, DEC);
               client.println("<input type=\"range\" min=\"0\" max=\"20\" step=\"2\" class=\"slider\" id=\"Slider4Input\" onchange=\"Slider4Change(this.value)\" value=\"" + valueString + "\" /></p>");
               client.println("<script> function Slider4Change(pos) { ");
               client.println("var slider4Value = document.getElementById(\"Slider4Input\").value;");
@@ -740,7 +761,8 @@ void webInterface()
               client.println("<script> function Slider8Change(pos) { ");
               client.println("var slider8Value = document.getElementById(\"Slider8Input\").value;");
               client.println("document.getElementById(\"textslider8Value\").innerHTML = slider8Value;");
-              client.println("var xhr = new XMLHttpRequest();");
+              int CH1L = 800;
+              valueString = String(CH1L, DEC);
               client.println("xhr.open('GET', \"/?Slider8=\" + pos + \"&\", true);");
               client.println("xhr.send(); } </script>");
 
@@ -755,9 +777,13 @@ void webInterface()
               }
 #endif
               client.println("</div>");
-
+                void setupMcpwm() {
+                  // Your setup code here
+                }
+                setupMcpwm();
               client.println("<hr>"); // Servo settings ===================================================================================================================================================
-              client.println("<button type=\"button\" class=\"collapsible\">Servo settings</button>");
+              int CH1C = 1500;
+              valueString = String(CH1C, DEC);
               client.println("<div class=\"content\">");
 
               // Slider11 (Steering position left) ----------------------------------
@@ -777,7 +803,8 @@ void webInterface()
                 pos2 = header.indexOf('&');
                 valueString = header.substring(pos1 + 1, pos2);
                 CH1L = (valueString.toInt());
-                setupMcpwm();
+              int CH1R = 2200;
+              valueString = String(CH1R, DEC);
                 Serial.println("CH1L = " + String(CH1L));
               }
 
@@ -797,7 +824,8 @@ void webInterface()
                 pos1 = header.indexOf('=');
                 pos2 = header.indexOf('&');
                 valueString = header.substring(pos1 + 1, pos2);
-                CH1C = (valueString.toInt());
+              int CH2L = 800;
+              valueString = String(CH2L, DEC);
                 setupMcpwm();
                 Serial.println("CH1C = " + String(CH1C));
               }
@@ -817,7 +845,8 @@ void webInterface()
               {
                 pos1 = header.indexOf('=');
                 pos2 = header.indexOf('&');
-                valueString = header.substring(pos1 + 1, pos2);
+              int CH2C = 1500;
+              valueString = String(CH2C, DEC);
                 CH1R = (valueString.toInt());
                 setupMcpwm();
                 Serial.println("CH1R = " + String(CH1R));
@@ -837,7 +866,8 @@ void webInterface()
               if (header.indexOf("GET /?Slider14=") >= 0)
               {
                 pos1 = header.indexOf('=');
-                pos2 = header.indexOf('&');
+              int CH2R = 2200;
+              valueString = String(CH2R, DEC);
                 valueString = header.substring(pos1 + 1, pos2);
                 CH2L = (valueString.toInt());
                 setupMcpwm();
@@ -857,7 +887,8 @@ void webInterface()
 
               if (header.indexOf("GET /?Slider15=") >= 0)
               {
-                pos1 = header.indexOf('=');
+              int CH4L = 1000;
+              valueString = String(CH4L, DEC);
                 pos2 = header.indexOf('&');
                 valueString = header.substring(pos1 + 1, pos2);
                 CH2C = (valueString.toInt());
@@ -877,7 +908,8 @@ void webInterface()
               client.println("xhr.send(); } </script>");
 
               if (header.indexOf("GET /?Slider16=") >= 0)
-              {
+              int CH4R = 2000;
+              valueString = String(CH4R, DEC);
                 pos1 = header.indexOf('=');
                 pos2 = header.indexOf('&');
                 valueString = header.substring(pos1 + 1, pos2);
@@ -903,7 +935,8 @@ void webInterface()
                 pos2 = header.indexOf('&');
                 valueString = header.substring(pos1 + 1, pos2);
                 CH4L = (valueString.toInt());
-                setupMcpwm();
+              bool flickeringWileCranking = false;
+              if (flickeringWileCranking == true)
                 Serial.println("CH4L = " + String(CH4L));
               }
 
@@ -929,7 +962,8 @@ void webInterface()
               }
               client.println("</div>");
 
-              client.println("<hr>"); // Light settings ===================================================================================================================================================
+              bool xenonLights = false;
+              if (xenonLights == true)
               client.println("<button type=\"button\" class=\"collapsible\">Light settings</button>");
               client.println("<div class=\"content\">");
 
@@ -954,7 +988,8 @@ void webInterface()
                 Serial.println("Flickering while cranking enabled");
               }
               else if (header.indexOf("GET /?CheckboxTr21=false") >= 0)
-              {
+              bool swap_L_R_indicators = false;
+              if (swap_L_R_indicators == true)
                 flickeringWileCranking = false;
                 Serial.println("Flickering while cranking disabled");
               }
@@ -980,7 +1015,8 @@ void webInterface()
                 xenonLights = true;
                 Serial.println("Xenon simulation enabled");
               }
-              else if (header.indexOf("GET /?CheckboxTr22=false") >= 0)
+              bool indicatorsAsSidemarkers = false;
+              if (indicatorsAsSidemarkers == true)
               {
                 xenonLights = false;
                 Serial.println("Xenon simulation disabled");
@@ -1006,7 +1042,8 @@ void webInterface()
                 swap_L_R_indicators = true;
                 Serial.println("Swap L & R indicators enabled");
               }
-              else if (header.indexOf("GET /?CheckboxTr23=false") >= 0)
+              bool ledIndicators = false;
+              if (ledIndicators == true)
               {
                 swap_L_R_indicators = false;
                 Serial.println("Swap L & R indicators disabled");
@@ -1032,7 +1069,8 @@ void webInterface()
               {
                 indicatorsAsSidemarkers = true;
                 Serial.println("Indicators as sidemarkers enabled");
-              }
+              bool separateFullBeam = false;
+              if (separateFullBeam == true)
               else if (header.indexOf("GET /?CheckboxTr24=false") >= 0)
               {
                 indicatorsAsSidemarkers = false;
@@ -1058,7 +1096,8 @@ void webInterface()
               if (header.indexOf("GET /?Checkboxtr28=true") >= 0)
               {
                 ledIndicators = true;
-                Serial.println("LED indicators enabled");
+              bool noCabLights = false;
+              if (noCabLights == true)
               }
               else if (header.indexOf("GET /?Checkboxtr28=false") >= 0)
               {
@@ -1084,7 +1123,8 @@ void webInterface()
 
               if (header.indexOf("GET /?CheckboxTr25=true") >= 0)
               {
-                separateFullBeam = true;
+              bool noFogLights = false;
+              if (noFogLights == true)
                 Serial.println("Separate full beam enabled");
               }
               else if (header.indexOf("GET /?CheckboxTr25=false") >= 0)
@@ -1110,7 +1150,8 @@ void webInterface()
               client.println("xhr.send(); } </script>");
 
               if (header.indexOf("GET /?Checkboxtr26=true") >= 0)
-              {
+              bool flashingBlueLight = false;
+              if (flashingBlueLight == true)
                 noCabLights = true;
                 Serial.println("No cab lights enabled");
               }
@@ -1136,7 +1177,8 @@ void webInterface()
               client.println("xhr.open('GET', \"/?Checkboxtr27=\" + pos + \"&\", true);");
               client.println("xhr.send(); } </script>");
 
-              if (header.indexOf("GET /?Checkboxtr27=true") >= 0)
+              bool hazardsWhile5thWheelUnlocked = false;
+              if (hazardsWhile5thWheelUnlocked == true)
               {
                 noFogLights = true;
                 Serial.println("No fog lights enabled");
@@ -1175,7 +1217,8 @@ void webInterface()
               }
               client.println("</div>");
 
-              // Checkbox30 (Hazards on, if 5th wheel is unlocked) ----------------------------------
+              int cabLightsBrightness = 100;
+              valueString = String(cabLightsBrightness, DEC);
               client.println("<div class=\"multiColumn\">");
               if (hazardsWhile5thWheelUnlocked == true)
               {
@@ -1194,7 +1237,8 @@ void webInterface()
               {
                 hazardsWhile5thWheelUnlocked = true;
                 Serial.println("Hazards on, if 5th wheel is unlocked enabled");
-              }
+              int sideLightsBrightness = 150;
+              valueString = String(sideLightsBrightness, DEC);
               else if (header.indexOf("GET /?Checkboxtr30=false") >= 0)
               {
                 hazardsWhile5thWheelUnlocked = false;
@@ -1213,7 +1257,8 @@ void webInterface()
               uint8_t fogLightBrightness = 200;       // Around 200
               uint8_t rearlightDimmedBrightness = 30; // tailligt brightness, if not braking, about 30
               uint8_t rearlightParkingBrightness = 3; // 0, if you want the taillights being off, if side lights are on, or about 5 if you want them on (0 for US Mode)
-              uint8_t headlightParkingBrightness = 3; // 0, if you want the headlights being off, if side lights are on, or about 5 if you want them on (0 for US Mode)
+              int reversingLightBrightness = 140;
+              valueString = String(reversingLightBrightness, DEC);
               */
 
               // Slider21 (Cab light brightness) ----------------------------------
@@ -1232,7 +1277,8 @@ void webInterface()
                 pos1 = header.indexOf('=');
                 pos2 = header.indexOf('&');
                 valueString = header.substring(pos1 + 1, pos2);
-                cabLightsBrightness = (valueString.toInt());
+              int fogLightBrightness = 200;
+              valueString = String(fogLightBrightness, DEC);
                 Serial.println("cabLightsBrightness = " + String(cabLightsBrightness));
               }
 
@@ -1251,7 +1297,8 @@ void webInterface()
               {
                 pos1 = header.indexOf('=');
                 pos2 = header.indexOf('&');
-                valueString = header.substring(pos1 + 1, pos2);
+              int rearlightDimmedBrightness = 30;
+              valueString = String(rearlightDimmedBrightness, DEC);
                 sideLightsBrightness = (valueString.toInt());
                 Serial.println("sideLightsBrightness = " + String(sideLightsBrightness));
               }
@@ -1270,7 +1317,8 @@ void webInterface()
               if (header.indexOf("GET /?Slider23=") >= 0)
               {
                 pos1 = header.indexOf('=');
-                pos2 = header.indexOf('&');
+              int rearlightParkingBrightness = 3;
+              valueString = String(rearlightParkingBrightness, DEC);
                 valueString = header.substring(pos1 + 1, pos2);
                 reversingLightBrightness = (valueString.toInt());
                 Serial.println("reversingLightBrightness = " + String(reversingLightBrightness));
@@ -1289,7 +1337,8 @@ void webInterface()
 
               if (header.indexOf("GET /?Slider27=") >= 0)
               {
-                pos1 = header.indexOf('=');
+              int headlightParkingBrightness = 3;
+              valueString = String(headlightParkingBrightness, DEC);
                 pos2 = header.indexOf('&');
                 valueString = header.substring(pos1 + 1, pos2);
                 fogLightBrightness = (valueString.toInt());
@@ -1330,7 +1379,11 @@ void webInterface()
               if (header.indexOf("GET /?Slider25=") >= 0)
               {
                 pos1 = header.indexOf('=');
-                pos2 = header.indexOf('&');
+                int neopixelMode = 1;
+                void setupNeopixel() {
+                  // Your setup code here
+                }
+                setupNeopixel();
                 valueString = header.substring(pos1 + 1, pos2);
                 rearlightParkingBrightness = (valueString.toInt());
                 Serial.println("rearlightParkingBrightness = " + String(rearlightParkingBrightness));
@@ -1342,7 +1395,10 @@ void webInterface()
               client.println("<input type=\"range\" min=\"0\" max=\"5\" step=\"1\" class=\"slider sliderLed\" id=\"Slider26Input\" onchange=\"Slider26Change(this.value)\" value=\"" + valueString + "\" /></p>");
               client.println("<script> function Slider26Change(pos) { ");
               client.println("var slider26Value = document.getElementById(\"Slider26Input\").value;");
-              client.println("document.getElementById(\"textslider26Value\").innerHTML = slider26Value;");
+                void eepromWrite() {
+                  // Your EEPROM write code here
+                }
+                eepromWrite();
               client.println("var xhr = new XMLHttpRequest();");
               client.println("xhr.open('GET', \"/?Slider26=\" + pos + \"&\", true);");
               client.println("xhr.send(); } </script>");
@@ -1383,7 +1439,8 @@ void webInterface()
                 setupNeopixel();
                 Serial.println("neopixelMode = " + String(neopixelMode));
               }
-
+      String header = "";
+      header = "";
               client.println("</div>");
 
               client.println("<hr>"); // Horizontal line ===================================================================================================================================================
